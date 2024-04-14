@@ -78,9 +78,18 @@
 #ifdef CL_OPTIONAL_CONSTEXPR
 #   define _CL_OPT_CONSTEXPR            constexpr
 #   define _CL_OPT_CONSTEXPR_OR_CONST   constexpr
+#   if __cplusplus >= 201402L
+#       define _CL_OPT_MUTABLE_CONSTEXPR        constexpr
+#       define _CL_OPT_NON_EMPTY_CTOR_CONSTEXPR constexpr
+#   else
+#       define _CL_OPT_MUTABLE_CONSTEXPR
+#       define _CL_OPT_NON_EMPTY_CTOR_CONSTEXPR
+#   endif
 #else
 #   define _CL_OPT_CONSTEXPR
 #   define _CL_OPT_CONSTEXPR_OR_CONST   const
+#   define _CL_OPT_MUTABLE_CONSTEXPR
+#   define _CL_OPT_NON_EMPTY_CTOR_CONSTEXPR
 #endif
 
 // Define CL_OPTIONAL_VARIADIC to get variadic templates
@@ -236,7 +245,7 @@ public:
 #if _CL_OPT_VARIADIC
     // In-place constructor of optional with a value
     template<typename... Args>
-    _CL_OPT_CONSTEXPR explicit optional(in_place_t, Args&&... args)
+    _CL_OPT_NON_EMPTY_CTOR_CONSTEXPR explicit optional(in_place_t, Args&&... args)
                 _CL_OPT_NOEXCEPTEX(std::is_nothrow_constructible<T, Args&&...>::value)
         : stg_(), pval_(reinterpret_cast<T*>(&stg_)), has_value_(true)
     {
@@ -246,7 +255,7 @@ public:
     // Same but with an initializer_list thrown in just for fun
     template<typename U, typename... Args,
              typename = typename std::enable_if<std::is_constructible<T, std::initializer_list<U>&, Args&&...>::value, void>::type>
-    _CL_OPT_CONSTEXPR explicit optional(in_place_t,
+    _CL_OPT_NON_EMPTY_CTOR_CONSTEXPR explicit optional(in_place_t,
                                          std::initializer_list<U> ilist,
                                          Args&&... args)
                 _CL_OPT_NOEXCEPTEX(std::is_nothrow_constructible<T, std::initializer_list<U>&, Args&&...>::value)
@@ -340,20 +349,20 @@ public:
     _CL_OPT_CONSTEXPR const T* operator->() const {
         return pval_;
     }
-    _CL_OPT_CONSTEXPR T* operator->() {
+    _CL_OPT_MUTABLE_CONSTEXPR T* operator->() {
         return pval_;
     }
     _CL_OPT_CONSTEXPR const T& operator*() const _CL_OPT_LVALUE_REF_QUALIF {
         return *pval_;
     }
-    _CL_OPT_CONSTEXPR T& operator*() _CL_OPT_LVALUE_REF_QUALIF {
+    _CL_OPT_MUTABLE_CONSTEXPR T& operator*() _CL_OPT_LVALUE_REF_QUALIF {
         return *pval_;
     }
 #if _CL_OPT_MEMBERS_REF_QUALIFIERS
     _CL_OPT_CONSTEXPR const T&& operator*() const && {
         return std::move(*pval_);
     }
-    _CL_OPT_CONSTEXPR T&& operator*() && {
+    _CL_OPT_MUTABLE_CONSTEXPR T&& operator*() && {
         return std::move(*pval_);
     }
 #endif // _CL_OPT_MEMBERS_REF_QUALIFIERS
@@ -373,7 +382,7 @@ public:
         }
         return *pval_;
     }
-    _CL_OPT_CONSTEXPR T& value() _CL_OPT_LVALUE_REF_QUALIF {
+    _CL_OPT_MUTABLE_CONSTEXPR T& value() _CL_OPT_LVALUE_REF_QUALIF {
         if (!has_value_) {
             throw_bad_optional_access();
         }
@@ -386,7 +395,7 @@ public:
         }
         return std::move(*pval_);
     }
-    _CL_OPT_CONSTEXPR T&& value() && {
+    _CL_OPT_MUTABLE_CONSTEXPR T&& value() && {
         if (!has_value_) {
             throw_bad_optional_access();
         }
@@ -404,7 +413,7 @@ public:
     }
 #if _CL_OPT_MEMBERS_REF_QUALIFIERS
     template<typename U>
-    _CL_OPT_CONSTEXPR T value_or(U&& default_val) &&
+    _CL_OPT_MUTABLE_CONSTEXPR T value_or(U&& default_val) &&
                 _CL_OPT_NOEXCEPTEX(std::is_nothrow_move_constructible<T>::value &&
                                    std::is_nothrow_constructible<T, U>::value)
     {
